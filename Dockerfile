@@ -6,11 +6,13 @@ LABEL RUN="docker run -v /tmp/gpg-agent"
 LABEL STOP="docker exec pkill gpgp-agent"
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && \
-apt-get install -y gnupg-agent gnupg2
+    apt-get install -y gnupg-agent gnupg2
 
 ENV GNUPGHOME=/tmp/gpg-agent
 
 VOLUME /tmp/gpg-agent
+
+RUN mkdir -p /tmp/gpg-agent/keys
 
 CMD chmod 700 /tmp/gpg-agent; \
 eval $(gpg-agent --write-env-file /tmp/gpg-agent/gpg_agent_info \
