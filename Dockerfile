@@ -12,8 +12,6 @@ ENV GNUPGHOME=/tmp/gpg-agent
 
 VOLUME /tmp/gpg-agent
 
-COPY *.key /tmp/
-
 CMD chmod 700 /tmp/gpg-agent; \
 eval $(gpg-agent --write-env-file /tmp/gpg-agent/gpg_agent_info \
                  --use-standard-socket --daemon \
