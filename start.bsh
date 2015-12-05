@@ -2,18 +2,6 @@
 
 set -eu
 
-function rel2abs()
-{
-  if [ -d "$1" ]; then
-    cd "$1"
-    pwd
-  else
-    cd $(dirname "$1")
-    echo $(pwd)/$(basename $1)
-  fi
-}
-
-CUR_DIR=$(dirname ${BASH_SOURCE[0]})
 : ${CONTAINER_NAME=gpg-agent_debian_8}
 
 if [ "$(docker inspect -f {{.State.Running}} ${CONTAINER_NAME} 2>/dev/null)" != "true" ]; then
@@ -22,16 +10,7 @@ if [ "$(docker inspect -f {{.State.Running}} ${CONTAINER_NAME} 2>/dev/null)" != 
   OTHER_OPTIONS=("-e" "GPG_DEFAULT_CACHE=${GPG_DEFAULT_CACHE:-31536000}")
   OTHER_OPTIONS+=("-e" "GPG_MAX_CACHE=${GPG_MAX_CACHE:-31536000}")
 
-  while (( $# > 0 )); do
-    if [ -d "$1" ]; then
-      for file in $(ls $1/*.key); do
-        OTHER_OPTIONS+=("-v" "$(rel2abs $file):/tmp/")
-      done
-    else
-      OTHER_OPTIONS+=("-v" "$(rel2abs $1):/tmp/")
-    fi
-    shift
-  done
-
-  docker run -d -t "${OTHER_OPTIONS[@]}" --name ${CONTAINER_NAME} andyneff/gpg-agent
+  docker run -d -t "${OTHER_OPTIONS[@]}" --name ${CONTAINER_NAME} andyneff/gpg_agent
+else
+  echo "Container ${CONTAINER_NAME} is already running"
 fi

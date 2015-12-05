@@ -10,9 +10,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && \
 
 ENV GNUPGHOME=/tmp/gpg-agent
 
-VOLUME /tmp/gpg-agent
-
 RUN mkdir -p /tmp/gpg-agent/keys
+
+VOLUME /tmp/gpg-agent
 
 CMD chmod 700 /tmp/gpg-agent; \
 eval $(gpg-agent --write-env-file /tmp/gpg-agent/gpg_agent_info \

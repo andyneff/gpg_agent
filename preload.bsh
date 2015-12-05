@@ -1,30 +1,52 @@
 #!/usr/bin/env bash
 
+#Preloads the key files into the gpg-agent docker. 
+#The keys are specifies as arguments to preload.bsh. 
+#- They can either be files or directories of *.key files
+
 set -eu
 
 CUR_DIR=$(dirname ${BASH_SOURCE[0]})
-IMAGE_NAME=gpg-agent_debian_8
-
-: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
+: ${CONTAINER_NAME=gpg-agent_debian_8}
 
 if [[ $# > 0 ]] && [ "$1" == "-r" ]; then
-  ${CUR_DIR}/gpg-agent_stop.bsh
+  ${CUR_DIR}/stop.bsh
 fi
 
-${CUR_DIR}/gpg-agent_start.bsh
+${CUR_DIR}/start.bsh
 
 #wait at most 10 seconds
-for x in $(seq 10); do
-  if $SUDO docker exec -it git-lfs-gpg gpg-connect-agent --homedir=/tmp/gpg-agent /bye; then
+loop=0
+while true; do
+  echo $loop
+  if docker exec -it ${CONTAINER_NAME} bash -c \
+     "gpg-connect-agent --homedir="'${GNUPGHOME}'" /bye" || \
+     [ $loop -gt 10 ]; then
+     #This is annoyingly complicated (the bash call + env var)
+     #so that it works on REAL linux AND mingw alike
+    echo 3
     break
   else
+    echo 2
     sleep 1
   fi
+  loop=$(( loop + 1 ))
+done
+
+while (( $# > 0 )); do
+  if [ -d "$1" ]; then
+    for file in $(ls $1/*.key); do
+      docker cp $file ${CONTAINER_NAME}:/tmp/gpg-agent/keys/
+    done
+  else
+    docker cp $1 ${CONTAINER_NAME}:/tmp/gpg-agent/keys/
+  fi
+  shift
 done
 
 #I only need script cause of https://github.com/docker/docker/issues/8755 HORRAY BUGS!
-$SUDO docker exec -it git-lfs-gpg script /dev/null -q -c ' \
-  for key in $(ls /tmp/*.key); do \
+docker exec -it ${CONTAINER_NAME} script /dev/null -q -c ' \
+  for key in $(ls /tmp/gpg-agent/keys/*.key); do \
     if [ -s $key ]; then \
       gpg --import $key; \
       gpg2 -o /dev/null -s /dev/null; \
