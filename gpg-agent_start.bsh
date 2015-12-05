@@ -2,19 +2,36 @@
 
 set -eu
 
-CUR_DIR=$(dirname ${BASH_SOURCE[0]})
-IMAGE_NAME=gpg-agent_debian_8
-
-: ${SUDO=`if ( [ ! -w /var/run/docker.sock ] && id -nG | grep -qwv docker && [ "${DOCKER_HOST:+dh}" != "dh" ] ) && which sudo > /dev/null 2>&1; then echo sudo; fi`}
-
-if [ "$(docker inspect -f {{.State.Running}} git-lfs-gpg)" != "true" ]; then
-  #Don't rebuild WHILE RUNNING
-  if [[ ${DOCKER_AUTOBUILD-1} != 0 ]]; then
-    ${CUR_DIR}/build_dockers.bsh ${CUR_DIR}/${IMAGE_NAME}.dockerfile
+function rel2abs()
+{
+  if [ -d "$1" ]; then
+    cd "$1"
+    pwd
+  else
+    cd $(dirname "$1")
+    echo $(pwd)/$(basename $1)
   fi
-  
+}
+
+CUR_DIR=$(dirname ${BASH_SOURCE[0]})
+: ${CONTAINER_NAME=gpg-agent_debian_8}
+
+if [ "$(docker inspect -f {{.State.Running}} ${CONTAINER_NAME} 2>/dev/null)" != "true" ]; then
+  #Don't rerun WHILE RUNNING
+
   OTHER_OPTIONS=("-e" "GPG_DEFAULT_CACHE=${GPG_DEFAULT_CACHE:-31536000}")
   OTHER_OPTIONS+=("-e" "GPG_MAX_CACHE=${GPG_MAX_CACHE:-31536000}")
-  
-  ${SUDO} docker run -d -t "${OTHER_OPTIONS[@]}" --name git-lfs-gpg git-lfs/${IMAGE_NAME} "${@}"
+
+  while (( $# > 0 )); do
+    if [ -d "$1" ]; then
+      for file in $(ls $1/*.key); do
+        OTHER_OPTIONS+=("-v" "$(rel2abs $file):/tmp/")
+      done
+    else
+      OTHER_OPTIONS+=("-v" "$(rel2abs $1):/tmp/")
+    fi
+    shift
+  done
+
+  docker run -d -t "${OTHER_OPTIONS[@]}" --name ${CONTAINER_NAME} andyneff/gpg-agent
 fi
