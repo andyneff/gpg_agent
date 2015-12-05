@@ -10,7 +10,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y update && \
 
 ENV GNUPGHOME=/tmp/gpg-agent
 
-RUN mkdir -p /tmp/gpg-agent/keys
+VOLUME /tmp/keys
+#Make this a separate volume in case you want to share the local repository
+#of keys with another docker. Normally not done for security reasons, but
+#someone may want a way to list all the keys, this will allow it
 
 VOLUME /tmp/gpg-agent
 

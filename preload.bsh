@@ -11,6 +11,7 @@ CUR_DIR=$(dirname ${BASH_SOURCE[0]})
 
 if [[ $# > 0 ]] && [ "$1" == "-r" ]; then
   ${CUR_DIR}/stop.bsh
+  shift
 fi
 
 ${CUR_DIR}/start.bsh
@@ -36,17 +37,17 @@ done
 while (( $# > 0 )); do
   if [ -d "$1" ]; then
     for file in $(ls $1/*.key); do
-      docker cp $file ${CONTAINER_NAME}:/tmp/gpg-agent/keys/
+      docker cp $file ${CONTAINER_NAME}:/tmp/keys/
     done
   else
-    docker cp $1 ${CONTAINER_NAME}:/tmp/gpg-agent/keys/
+    docker cp $1 ${CONTAINER_NAME}:/tmp/keys/
   fi
   shift
 done
 
 #I only need script cause of https://github.com/docker/docker/issues/8755 HORRAY BUGS!
 docker exec -it ${CONTAINER_NAME} script /dev/null -q -c ' \
-  for key in $(ls /tmp/gpg-agent/keys/*.key); do \
+  for key in $(ls /tmp/keys/*.key); do \
     if [ -s $key ]; then \
       gpg --import $key; \
       gpg2 -o /dev/null -s /dev/null; \
