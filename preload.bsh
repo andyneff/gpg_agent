@@ -7,7 +7,7 @@
 set -eu
 
 CUR_DIR=$(dirname ${BASH_SOURCE[0]})
-: ${CONTAINER_NAME=gpg-agent_debian_8}
+: ${CONTAINER_NAME=gpg-agent}
 
 if [[ $# > 0 ]] && [ "$1" == "-r" ]; then
   ${CUR_DIR}/stop.bsh
@@ -17,21 +17,15 @@ fi
 ${CUR_DIR}/start.bsh
 
 #wait at most 10 seconds
-loop=0
-while true; do
-  echo $loop
+for (( x=0; x<10; x++ )); do
   if docker exec -it ${CONTAINER_NAME} bash -c \
-     "gpg-connect-agent --homedir="'${GNUPGHOME}'" /bye" || \
-     [ $loop -gt 10 ]; then
+     "gpg-connect-agent --homedir="'${GNUPGHOME}'" /bye"; then
      #This is annoyingly complicated (the bash call + env var)
      #so that it works on REAL linux AND mingw alike
-    echo 3
     break
   else
-    echo 2
     sleep 1
   fi
-  loop=$(( loop + 1 ))
 done
 
 while (( $# > 0 )); do

@@ -2,7 +2,7 @@
 
 set -eu
 
-: ${CONTAINER_NAME=gpg-agent_debian_8}
+: ${CONTAINER_NAME=gpg-agent}
 
 if [ "$(docker inspect -f {{.State.Running}} ${CONTAINER_NAME} 2>/dev/null)" != "true" ]; then
   #Don't rerun WHILE RUNNING

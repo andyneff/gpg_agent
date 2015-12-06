@@ -5,7 +5,7 @@ Todo
 ```
 ./preload.bsh mykey.key
 
-docker run -v ?:$GNUPGHOME somedocker
+docker run --volumes-from gpg-agent -e GNUPGHOME=/tmp/gpg-agent somedocker
 ```
 
 # How to use #
@@ -22,6 +22,8 @@ it will cache all the keys.
 `./preload.bsh _keyfiles_` and it will cache your keyfiles, and ask you all your 
 passphases right then and there. All you have to do is run your dockers with the
 `-v ?:$GNUPGHOME` flag, and it will use the cached keys
+
+-e "$(docker exec gpg-agent cat /tmp/gpg-agent/gpg_agent_info)"
 
 What is `$GNUPGHOME`? This is the GPG home, typically `~/.gnupg`.
 
@@ -71,7 +73,7 @@ GPG_MAX_CACHE - Default: 1 year. Set for gpg-agent. Units in seconds.
 
 GPG_DEFAULT_CACHE - Default: 1 year. Set for gpg-agent. Units in seconds.
 
-CONTAINER_NAME - Default: gpg-agent_debian_8. You can change the name used, and
+CONTAINER_NAME - Default: gpg-agent. You can change the name used, and
 even deploy multiple unique instances by overwriting this when calling the bash 
 scripts.
 
@@ -80,3 +82,20 @@ scripts.
 While the gpg-agent uses it the one that ships with debian 8 (2.0.26), it has been
 tested against CentOS 5, CentOS 6, CentOS 7, Debian 7, and Debian 8, and all work
 without issue.
+
+## Generating new keys ##
+
+Enter a docker and make sure the appropriate gpg packages are installed
+
+    docker run -it --rm -v `pwd`:/key centos:7
+    gpg --gen-key
+    ... Go through the steps
+    gpg --export-secret-key '12345678!' > /key/mykey.key
+
+If during the gpg-key-gen, it says waiting for entropy, you CAN run haveged to 
+get the entropy count high. This is **NOT** recommend for production use.
+You can start a docker `gpg_agent:entropy` to run haveged for you. In another window
+
+    docker run --rm --privileged andyneff/gpg_agent:entropy
+
+Ctrl+C when done
